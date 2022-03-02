@@ -1,0 +1,9 @@
+import ioPlus.one.two.three;
+import four.five.six;
+
+class HelloWorld{
+	public static void main(String[] args) {
+		ioPlus.printHelloWorld();
+	}
+
+}

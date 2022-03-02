@@ -1,0 +1,22 @@
+class myClass {
+    public int bigger(int a, int b){
+      int c;
+      if (a < b){
+       c = b;
+      }
+      else{
+        c = a;
+      }
+      return c;
+    }
+
+    public static void main(String[] args){
+        int a;
+        int b;
+        int c;
+
+        a = 10;
+        b = 5;
+
+    }
+}

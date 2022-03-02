@@ -1,0 +1,14 @@
+import ioPlus;
+class HelloWorld {
+    //int a;
+    public static void main(String[] args) {
+           int b;
+           int a;
+           int result;
+
+           a = 5;
+           b = 6;
+           result = a + b * 10;
+           ioPlus.printResult(result);
+    }
+}

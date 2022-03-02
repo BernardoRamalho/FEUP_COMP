@@ -1,0 +1,4 @@
+digraph cfg {
+	begin [shape=Msquare];
+	end [shape=Msquare];
+	begin -> 1;	1 -> 4[label=T];	1 -> 2[label=F];	2 -> 3;	3 -> 5;	4 -> 5;	5 -> end;}

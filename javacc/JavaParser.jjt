@@ -1,0 +1,442 @@
+options
+{
+    LOOKAHEAD=1;
+    // DEBUG_PARSER=true;
+}
+
+
+PARSER_BEGIN (JavaParser)
+
+public class JavaParser {
+
+    private int parenthesisCounter = 0;
+    private int numErrors=0;
+    
+    public SimpleNode parse() throws ParseException {
+        SimpleNode root = this.Parse();
+        return root;
+    }
+
+    public int skipError(){
+        Token nextToken= getToken(1);
+
+        do{
+            if(nextToken == null || nextToken.kind == LBRACKET || parenthesisCounter == 0)break;
+             
+            if(nextToken.kind == LPRTHSIS)
+                parenthesisCounter++;
+            else if (nextToken.kind == RPRTHSIS)
+                parenthesisCounter--;
+
+            getNextToken();
+            nextToken = getToken(1);
+
+        }while(true);
+
+        int missingParenthesis = parenthesisCounter;
+
+        //reset
+        if (parenthesisCounter > 0) {
+            parenthesisCounter = 0;
+        }
+
+        if (nextToken.kind == RPRTHSIS) getNextToken();
+        
+        return missingParenthesis;
+
+    }
+
+    public void handleWhileError(ParseException exception) throws ParseException{
+        System.out.println(Colors.RED_BRIGHT + "\n An error occurred \"" + exception.currentToken.next.image + "\" on line " +
+        exception.currentToken.beginLine + ", column " +
+        exception.currentToken.beginColumn + Colors.RESET);
+
+        System.out.println(Colors.YELLOW_BOLD + "Expected one of the tokens:" + Colors.RESET);
+        for(int i = 0; i < exception.expectedTokenSequences.length; i++) {
+            for(int j = 0; j < exception.expectedTokenSequences[i].length; j++) {
+                System.out.print(tokenImage[exception.expectedTokenSequences[i][j]]);
+            }
+
+            System.out.print(i == exception.expectedTokenSequences.length - 1 ? "\n\n" : " | ");
+        }
+
+        int missingParenthesis = skipError();
+
+        if(missingParenthesis > 0){
+            System.out.println(Colors.RED_BRIGHT + "There are " + missingParenthesis + " parenthesis missing." + Colors.RESET);
+        }
+        numErrors++;
+
+
+    }
+
+}
+
+PARSER_END(JavaParser)
+
+
+// Skip 
+
+SKIP :
+{
+    " "                         |
+    "\r"                        |
+    "\t"                        |
+    "\n"                        |
+    < "//" (~["\r", "\n"])* >   |
+    "/*" : MULTILINE_COMMENT
+}
+
+<MULTILINE_COMMENT> SKIP :
+{
+  "*/" : DEFAULT                |
+  < ~[] >
+}
+
+
+// Tokens
+
+// =================== Method Tokens ===================
+
+TOKEN :
+{
+    < IMPORT: "import" >        |
+    < CLASS: "class" >          |
+    < EXTENDS: "extends" >      |
+    < PUBLIC: "public" >        |
+    < RETURN: "return" >        |
+    < STATIC: "static" >        |
+    < VOID: "void" >            |
+    < MAIN: "main" >            |
+    < NEW: "new" >              |
+    < LENGTH: "length" >    
+}
+
+// =================== Declaration Tokens ===================
+
+TOKEN :
+{
+    < BOOLEAN: "boolean" >         |
+    < INT: "int" >                 |
+    < STRING: "String" >      
+}
+
+// =================== Statement Tokens ===================
+
+TOKEN :
+{
+    < IF: "if" >                |
+    < ELSE: "else" >            |
+    < TRUE: "true" >            |
+    < FALSE: "false" >          |
+    < WHILE: "while" >          
+}
+
+
+// =================== Variable Tokens ===================
+
+TOKEN: {
+    < INTEGER: (["0"-"9"])+ >     |   
+    < THIS: "this" >                 |
+    < IDENTIFIER: ["a"-"z","A"-"Z", "$", "_"](["a"-"z","A"-"Z", "$", "_"]|["0"-"9"]|"_")* >  
+}
+
+
+// =================== Operation Tokens ===================
+
+TOKEN : {
+    < AND: "&&" >               |
+    < ASSIGN: "=" >             |
+    < SUM: "+" >                |
+    < SUB: "-" >                |
+    < MULT: "*" >               |
+    < DIV: "/" >                |
+    < LESS: "<" >               |
+    < NEG: "!" >                        
+}
+
+// =================== Symbol Tokens ===================
+
+TOKEN :
+{
+    < LBRACKET: "{" >           |
+    < LSQBRACKET: "[" >         |
+    < RSQBRACKET: "]" >         |
+    < RBRACKET: "}" >           |
+    < LPRTHSIS: "(">            |
+    < RPRTHSIS: ")">            |
+    < DOT: "." >                |
+    < COMMA: "," >              |
+    < SEMICOLON: ";" >        
+}
+
+
+// Expressions 
+
+SimpleNode Parse() #PARSER : {} 
+{
+
+    // Reset error tracking
+    {
+        parenthesisCounter = 0;
+        numErrors=0;
+    }
+
+    (ImportDeclaration())* ClassDeclaration() <EOF>
+
+    {
+        if(numErrors > 0){
+            throw new ParseException("Error in while statement");
+        }
+    }
+    {return jjtThis;}
+}
+
+void ImportDeclaration() #IMPORT : {} {
+    <IMPORT> Identifier()(<DOT> Identifier())* <SEMICOLON>
+}
+
+void ClassDeclaration() #CLASS : {} {
+    <CLASS> Identifier() (<EXTENDS> Identifier() #EXTENDS(1))? <LBRACKET> (VarDeclaration())* (MethodDeclaration())* <RBRACKET> 
+}
+
+
+// =================== Variable Declarations ===================
+
+void VarDeclaration() #void : {Token token;}
+{
+    Type() Identifier() #VARIABLE(2) <SEMICOLON>
+}
+
+void IdentifierVarDeclaration() #void : {Token token;} {
+    Identifier() <SEMICOLON>
+}
+
+void NonIdentifierVarDeclaration() #void : {Token token;} {
+    NonIdentifierType() Identifier() #VARIABLE(2) <SEMICOLON>
+}
+
+// =================== Type Declarations ===================
+
+void Identifier() #void : {Token token;} {
+    (token = <IDENTIFIER> {jjtThis.put("Identifier", token.image); jjtThis.put("line", Integer.toString(getToken(0).beginLine)); jjtThis.put("column", Integer.toString(getToken(0).beginColumn));}) #IDENTIFIER
+}
+
+void Type() #void : {} {
+    Identifier() | NonIdentifierType()
+}
+
+void NonIdentifierType() #TYPE: {Token token;}{
+    (token = <INT> {jjtThis.put("type", "int"); jjtThis.put("line", Integer.toString(getToken(0).beginLine)); jjtThis.put("column", Integer.toString(getToken(0).beginColumn));})  ((token = <LSQBRACKET> {jjtThis.put("type", "intArray"); jjtThis.put("line", Integer.toString(getToken(0).beginLine)); jjtThis.put("column", Integer.toString(getToken(0).beginColumn));}) <RSQBRACKET> )?  | (token = <BOOLEAN> {jjtThis.put("type", "bool"); jjtThis.put("line", Integer.toString(getToken(0).beginLine)); jjtThis.put("column", Integer.toString(getToken(0).beginColumn));})
+}
+
+
+// =================== Method Declarations ===================
+
+void MethodDeclaration() #void : {}
+{
+    <PUBLIC> ( MainMethod() | OtherMethod() )
+}
+
+void MainMethod() #MAINMETHOD: {Token token;}
+{
+    <STATIC> <VOID> (token = <MAIN> {jjtThis.put("MethodName", token.image); jjtThis.put("line", Integer.toString(getToken(0).beginLine)); jjtThis.put("column", Integer.toString(getToken(0).beginColumn));}) <LPRTHSIS> {  parenthesisCounter++;}
+    <STRING> <LSQBRACKET> <RSQBRACKET> (token = <IDENTIFIER> {jjtThis.addArg(token.image); jjtThis.put("line", Integer.toString(getToken(0).beginLine)); jjtThis.put("column", Integer.toString(getToken(0).beginColumn));}) <RPRTHSIS> {parenthesisCounter--;} <LBRACKET> MethodBody() <RBRACKET>
+}
+
+void MethodBody() #void : {}
+{
+    NonIdentifierVarDeclaration() MethodBody()  |
+    Identifier() (IdentifierVarDeclaration() #VARIABLE(2) MethodBody() | IdentifierStat() (Statement())*)  |
+    NonIdentifierStat() (Statement())* |
+    {}
+}
+
+void OtherMethod() #OTHERMETHOD : {Token token;}
+{
+    ( (token = <IDENTIFIER> {jjtThis.put("ReturnType", token.image); jjtThis.put("line", Integer.toString(getToken(0).beginLine)); jjtThis.put("column", Integer.toString(getToken(0).beginColumn));}) |  (token = <INT> {jjtThis.put("ReturnType", "int"); jjtThis.put("line", Integer.toString(getToken(0).beginLine)); jjtThis.put("column", Integer.toString(getToken(0).beginColumn));})  ((token = <LSQBRACKET> {jjtThis.put("ReturnType", "intArray"); jjtThis.put("line", Integer.toString(getToken(0).beginLine)); jjtThis.put("column", Integer.toString(getToken(0).beginColumn));}) <RSQBRACKET> )?  | (token = <BOOLEAN> {jjtThis.put("ReturnType", "bool"); jjtThis.put("line", Integer.toString(getToken(0).beginLine)); jjtThis.put("column", Integer.toString(getToken(0).beginColumn));}) ) (token = <IDENTIFIER> {jjtThis.put("MethodName", token.image); jjtThis.put("line", Integer.toString(getToken(0).beginLine)); jjtThis.put("column", Integer.toString(getToken(0).beginColumn));}) <LPRTHSIS> {  parenthesisCounter++;}
+    (Type() (token = <IDENTIFIER> {jjtThis.addArg(token.image);}) (<COMMA> Type() (token = <IDENTIFIER> {jjtThis.addArg(token.image);}))*)? <RPRTHSIS> {  parenthesisCounter--;}
+    <LBRACKET> MethodBody() <RETURN> Expression() #RETURN(1) <SEMICOLON> <RBRACKET>
+}
+
+void ReturnType() #RETURN : {Token token;}
+{
+    Type()
+}
+
+void MethodReference() #METHODCALL: {}{
+    (Identifier() <LPRTHSIS> {parenthesisCounter++;} (Expression()(<COMMA> Expression())*)? <RPRTHSIS> {parenthesisCounter--;})
+}
+
+// =================== Statement Declarations ===================
+
+void Statement() #void : {} {
+    (Identifier() IdentifierStat()) | NonIdentifierStat()
+}
+
+void IdentifierStat() #void : {} {
+    ((ArrayAccessStat())? <ASSIGN> Expression() #ASSIGN(2) <SEMICOLON>) | (NonIdentifierExpression() <SEMICOLON>)
+}
+
+void NonIdentifierStat() #void : {} {
+    BracketsStat() | WhileStat() | IfElseStat() | ExpressionStat()
+} 
+
+void BracketsStat() #void : {} {
+    <LBRACKET> (Statement())* <RBRACKET>
+}
+
+void ArrayAccessStat() #void: {Token token;} {
+    <LSQBRACKET>  Expression() (token = <RSQBRACKET> {jjtThis.put("line", Integer.toString(getToken(0).beginLine)); jjtThis.put("column", Integer.toString(getToken(0).beginColumn));}) #ARRAYACCESS(2)
+}
+
+void WhileStat() #WHILE : {} {
+    try{
+    <WHILE> ConditionStat()
+    }catch(ParseException e){
+        handleWhileError(e);
+    }
+    Statement()
+}
+
+void IfElseStat() #IFELSE: {} {
+    IfStat() ElseStat()
+}
+
+void IfStat() #IF: {} {
+    <IF> ConditionStat() Statement()
+}
+
+void ElseStat() #ELSE: {} {
+    <ELSE> Statement()
+}
+
+void ConditionStat() #CONDITION : {} {
+    <LPRTHSIS> {parenthesisCounter++;}
+    Expression() <RPRTHSIS> {parenthesisCounter--;}
+}
+
+void ExpressionStat() #void: {} {
+    NonIdentifierExpression() <SEMICOLON>
+}
+
+
+// =================== And Expression Declarations ===================
+
+void Expression() #void: {} {
+    LessIdentifierExpression() AndExpression()
+}
+
+void NonIdentifierExpression() #void: {}{
+    LessNonIdentifierExpression() AndExpression()
+}
+
+void AndExpression() #void: {} {
+    <AND> LessIdentifierExpression() #AND(2) AndExpression()
+    | {}
+}
+
+// =================== Less Expression Declarations ===================
+
+
+void LessIdentifierExpression() #void: {} {
+    SumSubIdentifierExpression() LessExpression()
+}
+
+void LessNonIdentifierExpression() #void: {}{
+    SumSubNonIdentifierExpression() LessExpression()
+}
+
+void LessExpression() #void: {} {
+    <LESS> SumSubIdentifierExpression() #LESS(2) LessExpression()
+    | {}
+}
+
+// =================== SumSub Declarations ===================
+
+
+void SumSubIdentifierExpression() #void: {} {
+    MultDivIdentifierExpression() SumSubExpression()
+}
+
+void SumSubNonIdentifierExpression() #void: {}{
+    MultDivNonIdentifierExpression() SumSubExpression()
+}
+
+void SumSubExpression() #void: {}{
+    (token = <SUM>) MultDivIdentifierExpression() {jjtThis.put("line", Integer.toString(getToken(0).beginLine)); jjtThis.put("column", Integer.toString(getToken(0).beginColumn));} #SUM(2) SumSubExpression()
+    | (token = <SUB>) MultDivIdentifierExpression() {jjtThis.put("line", Integer.toString(getToken(0).beginLine)); jjtThis.put("column", Integer.toString(getToken(0).beginColumn));} #SUB(2) SumSubExpression() 
+    | {}
+}
+
+// =================== MultDiv Expression Declarations ===================
+
+
+void MultDivIdentifierExpression() #void: {} {
+    BracketIdentifierExpression() MultDivExpression()
+}
+
+void MultDivNonIdentifierExpression() #void: {}{
+    BracketNonIdentifierExpression() MultDivExpression()
+}
+
+void MultDivExpression() #void: {}{
+    (token = <MULT>) BracketIdentifierExpression() {jjtThis.put("line", Integer.toString(getToken(0).beginLine)); jjtThis.put("column", Integer.toString(getToken(0).beginColumn));} #MUL(2) MultDivExpression()
+    | (token = <DIV>) BracketIdentifierExpression() {jjtThis.put("line", Integer.toString(getToken(0).beginLine)); jjtThis.put("column", Integer.toString(getToken(0).beginColumn));} #DIV(2) MultDivExpression()
+    | {}
+}
+
+// =================== Bracketed Expression Declarations ===================
+
+
+void BracketIdentifierExpression() #void: {} {
+    DotIdentifierExpression() BracketedExpression()
+}
+
+void BracketNonIdentifierExpression() #void: {}{
+    DotNonIdentifierExpression() BracketedExpression()
+}
+
+void BracketedExpression() #void: {} {
+    ArrayAccessStat() BracketedExpression()
+    | {}
+}
+
+
+// =================== Dot Expression Declarations ===================
+
+
+void DotIdentifierExpression() #void: {} {
+    TerminalIdentifierExpression() DotExpression()
+}
+
+void DotNonIdentifierExpression() #void: {}{
+    TerminalNonIdentifierExpression() DotExpression()
+}
+
+void DotExpression() #void:{} {
+    <DOT> ((<LENGTH> #LENGTH(1)) | MethodReference() #DOTMETHOD(2)) 
+    | {}
+}
+
+// =================== Terminal Expression Declarations ===================
+
+void TerminalIdentifierExpression() #void: {} {
+    TerminalExpression()
+    | Identifier()
+}
+
+void TerminalNonIdentifierExpression() #void: {} {
+    TerminalExpression() |
+    {}
+}
+
+void TerminalExpression() #void: {Token token;} {
+    token = <INTEGER> {jjtThis.put("Int", token.image);} #NUM
+    | token = <TRUE> {jjtThis.put("Bool", "true") ;} #BOOL
+    | token = <FALSE> {jjtThis.put("Bool", "false") ;} #BOOL
+    | <THIS> #THIS
+    | <NEW> (<INT> <LSQBRACKET> Expression() <RSQBRACKET> #INITARRAY(1) | Identifier() <LPRTHSIS> {parenthesisCounter++;} <RPRTHSIS> {parenthesisCounter--;} #INITCLASS(1))
+    | <NEG>  DotIdentifierExpression() #NEG
+    | <LPRTHSIS> {parenthesisCounter++;} Expression() <RPRTHSIS> {parenthesisCounter--;}
+}

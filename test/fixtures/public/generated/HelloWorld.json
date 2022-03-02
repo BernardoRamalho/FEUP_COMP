@@ -1,0 +1,137 @@
+{
+  "kind": "PARSER",
+  "attributes": {},
+  "children": [
+    {
+      "kind": "IMPORT",
+      "attributes": {},
+      "children": [
+        {
+          "kind": "IDENTIFIER",
+          "attributes": {
+            "Identifier": "ioPlus",
+            "line": "1",
+            "column": "8"
+          },
+          "children": []
+        },
+        {
+          "kind": "IDENTIFIER",
+          "attributes": {
+            "Identifier": "one",
+            "line": "1",
+            "column": "15"
+          },
+          "children": []
+        },
+        {
+          "kind": "IDENTIFIER",
+          "attributes": {
+            "Identifier": "two",
+            "line": "1",
+            "column": "19"
+          },
+          "children": []
+        },
+        {
+          "kind": "IDENTIFIER",
+          "attributes": {
+            "Identifier": "three",
+            "line": "1",
+            "column": "23"
+          },
+          "children": []
+        }
+      ]
+    },
+    {
+      "kind": "IMPORT",
+      "attributes": {},
+      "children": [
+        {
+          "kind": "IDENTIFIER",
+          "attributes": {
+            "Identifier": "four",
+            "line": "2",
+            "column": "8"
+          },
+          "children": []
+        },
+        {
+          "kind": "IDENTIFIER",
+          "attributes": {
+            "Identifier": "five",
+            "line": "2",
+            "column": "13"
+          },
+          "children": []
+        },
+        {
+          "kind": "IDENTIFIER",
+          "attributes": {
+            "Identifier": "six",
+            "line": "2",
+            "column": "18"
+          },
+          "children": []
+        }
+      ]
+    },
+    {
+      "kind": "CLASS",
+      "attributes": {},
+      "children": [
+        {
+          "kind": "IDENTIFIER",
+          "attributes": {
+            "Identifier": "HelloWorld",
+            "line": "4",
+            "column": "7"
+          },
+          "children": []
+        },
+        {
+          "kind": "MAINMETHOD",
+          "attributes": {
+            "args": "args",
+            "line": "5",
+            "column": "35",
+            "MethodName": "main"
+          },
+          "children": [
+            {
+              "kind": "DOTMETHOD",
+              "attributes": {},
+              "children": [
+                {
+                  "kind": "IDENTIFIER",
+                  "attributes": {
+                    "Identifier": "ioPlus",
+                    "line": "6",
+                    "column": "3"
+                  },
+                  "children": []
+                },
+                {
+                  "kind": "METHODCALL",
+                  "attributes": {},
+                  "children": [
+                    {
+                      "kind": "IDENTIFIER",
+                      "attributes": {
+                        "Identifier": "printHelloWorld",
+                        "line": "6",
+                        "column": "10"
+                      },
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

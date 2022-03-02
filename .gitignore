@@ -1,0 +1,6 @@
+/bin/
+.gradle/
+/build/
+/generated/
+comp2021-*.jar
+/src/ast.json
